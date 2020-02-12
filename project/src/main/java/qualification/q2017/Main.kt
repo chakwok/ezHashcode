@@ -3,11 +3,13 @@ package qualification.q2017
 import java.io.File
 import java.util.*
 
+// just for quick access here
 lateinit var videoToSize: HashMap<Int, Int>;
 lateinit var servers: Array<CacheServer>;
 var minVideoSize = Int.MAX_VALUE;
 
 fun main() {
+    //parsing the input
     val pathname = "project/src/main/java/qualification/q2017/qualification_round_2017.in/small.in"
     val file = File(pathname)
     val sc = Scanner(file)
@@ -27,7 +29,7 @@ fun main() {
     }
     println(videoToSize)
 
-//    val endpoints: PriorityQueue<Endpoint> = PriorityQueue(Comparator.comparingInt(Endpoint::maxSave));
+    // will be converted to pq after initializing
     val endpoints = ArrayList<Endpoint>(numEndpoint);
     for(i in 0 until numEndpoint) {
         val dbLatency = sc.nextInt();
@@ -66,10 +68,12 @@ fun main() {
 
     servers = Array<CacheServer>(numServers) {CacheServer(cacheSize)}
 
+    //this Comparator is the most important of the program
+    //ideally it should contain a heuristic to find the best video to put in the best server
     val pq = PriorityQueue<Endpoint>(numEndpoint, compareBy(Endpoint::maxSize).reversed())
     pq.addAll(endpoints);
 
-    //start
+    //start the dequeue process to put video in cacheServer
     var endpoint = pq.poll();
     while(endpoint != null && endpoint.maxSize > 0) {
         val map = endpoint.sizeToVids;
@@ -90,11 +94,12 @@ fun main() {
             endpoint.maxSize = lastKey;
             pq.offer(endpoint);
         }
-        if(endpoint.sizeToVids.size >0) {
+//        if(endpoint.sizeToVids.size >0) {
             endpoint = pq.poll()
 
-        }
+//        }
     }
+
 
     var size = 0;
     servers.forEach {
@@ -125,25 +130,20 @@ fun putVideoToAvailableServer(videoId: Int, latencySavedToMachines: TreeMap<Int,
     var serverss = latencySavedToMachines.iterator();
     while(serverss.hasNext()) {
         val machines = serverss.next().value;
-        if(machines == null) {
-            return -1;
-        } else {
-            val videoSize = videoToSize[videoId];
-            var maxSpaceLeft= 0;
-            var bestMachine= -1;
-            for(machine in machines) {
-                if(servers[machine].available && servers[machine].spaceLeft > videoSize!!) {
-                    if(servers[machine].spaceLeft > maxSpaceLeft) {
-                        bestMachine = machine;
-                    }
-                }
-                if(bestMachine !=-1) {
-                    putVideoToServer(videoId, videoSize!!, bestMachine)
-                    return machine;
+
+        val videoSize = videoToSize[videoId];
+        var maxSpaceLeft= 0;
+        var bestMachine= -1;
+        for(machine in machines) {
+            if(servers[machine].available && servers[machine].spaceLeft > videoSize!!) {
+                if(servers[machine].spaceLeft > maxSpaceLeft) {
+                    bestMachine = machine;
                 }
             }
-            if(latencySavedToMachines.size == 0)
-                return -1;
+            if(bestMachine !=-1) {
+                putVideoToServer(videoId, videoSize!!, bestMachine)
+                return machine;
+            }
         }
     }
     return -1;
@@ -168,8 +168,6 @@ data class Endpoint(
     val sizeToVids = TreeMap<Int, MutableList<Int>>();
     var maxSize = 0;
     var totalSize = 0;
-
-
 }
 
 
