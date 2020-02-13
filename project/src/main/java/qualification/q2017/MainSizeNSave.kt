@@ -15,7 +15,7 @@ fun main() {
     execute("project/src/main/java/qualification/q2017/qualification_round_2017.in/videos_worth_spreading.in")
 }
 
-fun execute(pathname: String) {
+private fun execute(pathname: String) {
     //parsing the input
 //    val pathname = "project/src/main/java/qualification/q2017/qualification_round_2017.in/small.in"
     val file = File(pathname)
@@ -47,7 +47,7 @@ fun execute(pathname: String) {
         for(j in 0 until size) {
             val pos = sc.nextInt();
             var saved = (dbLatency - sc.nextInt())
-            
+
 //            thisEndpoint.latencyToMachine[pos] = saved;
             val machines = thisEndpoint.latencySavedToMachines.getOrDefault(saved, ArrayList<Int>());
             machines.add(pos);
@@ -78,13 +78,14 @@ fun execute(pathname: String) {
     //this Comparator is the most important of the program
     //ideally it should contain a heuristic to find the best video to put in the best server
     val pq = PriorityQueue<Endpoint>(numEndpoint) { o1, o2 ->
-        o2.maxSize * o2.maxSave - o1.maxSize * o1.maxSave
+        (o2.maxSize * o2.maxSave - o1.maxSize * o1.maxSave)
     }
+//    val pq = PriorityQueue<Endpoint>(numEndpoint, compareBy(Endpoint::maxSize))
     pq.addAll(endpoints);
-
+    val cachedVideo = HashSet<Int>()
     //start the dequeue process to put video in cacheServer
     var endpoint = pq.poll();
-    while(endpoint != null && endpoint.maxSize > 0) {
+    while(endpoint != null/* && endpoint.maxSize > 0*/) {
         val map = endpoint.sizeToVids;
         if(map.size == 0) {
             endpoint = pq.poll()
@@ -97,7 +98,15 @@ fun execute(pathname: String) {
             continue;
         }
         val videoToPut = list[0];
-
+        if(cachedVideo.contains(videoToPut)) {
+            if(map.size != 0 && endpoint.maxSave > 0) {
+                lastKey = map.lastKey();
+                endpoint.maxSize = lastKey;
+                pq.offer(endpoint);
+            }
+            pq.poll();
+            continue;
+        }
 //        var machinePutInto = putVideoToAvailableServer(videoToPut, endpoint.latencySavedToMachines)
 
 //    var serverss = latencySavedToMachines.iterator();
@@ -120,12 +129,14 @@ fun execute(pathname: String) {
         for(machine in machines) {
             if(servers[machine].available && servers[machine].spaceLeft > videoSize!!) {
                 if(servers[machine].spaceLeft > maxSpaceLeft) {
+                    maxSpaceLeft = Math.max(maxSpaceLeft, servers[machine].spaceLeft)
                     bestMachine = machine;
                 }
             }
         }
         if(bestMachine !=-1) {
             putVideoToServer(videoToPut, videoSize!!, bestMachine)
+            cachedVideo.add(videoToPut)
         }
 
         if(latencySavedToMachines.size > 0) {
